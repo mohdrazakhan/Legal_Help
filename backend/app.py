@@ -1,52 +1,72 @@
 import sqlite3
+import re # Import the regular expression library
 from flask import Flask, jsonify
+from flask_cors import CORS
 
-# Create the Flask application instance
+# --- App Setup ---
 app = Flask(__name__)
+CORS(app)
 
 DB_PATH = './indialaw.db'
+ALLOWED_TABLES = {'IPC', 'CRPC', 'CPC', 'IEA', 'HMA', 'IDA', 'MVA', 'NIA'}
+
+# --- NEW: Text Sanitizer Function ---
+def sanitize_text(text):
+    """Cleans up text by removing extra whitespace and newlines."""
+    if not text:
+        return ""
+    # Replace newlines and tabs with a space
+    text = re.sub(r'[\n\t]+', ' ', text)
+    # Replace multiple spaces with a single space
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
 
 def get_db_connection():
-    """Creates a database connection."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-# --- API Routes ---
+# --- Updated API Routes ---
 
-# This is the route to get ALL sections of the IPC
-@app.route('/ipc/all', methods=['GET'])
-def get_all_ipc_sections():
+@app.route('/api/act/<string:act_name>', methods=['GET'])
+def get_all_sections_from_act(act_name):
+    if act_name.upper() not in ALLOWED_TABLES:
+        return jsonify({'error': f'Act "{act_name}" not found'}), 404
+    
     conn = get_db_connection()
-    sections_cursor = conn.execute('SELECT * FROM IPC').fetchall()
+    query = f'SELECT * FROM {act_name.upper()}'
+    sections_cursor = conn.execute(query).fetchall()
     conn.close()
     
-    # --- DEBUG CODE IS NOW IN THE CORRECT FUNCTION ---
-    if sections_cursor:
-        first_row = dict(sections_cursor[0])
-        print("\n--- DEBUG: Column names found in the database ---")
-        print(first_row.keys())
-        print("-------------------------------------------------\n")
-    # --- END OF DEBUG CODE ---
-    
-    result = [dict(row) for row in sections_cursor]
+    # Apply the sanitizer to the description of each section
+    result = []
+    for row in sections_cursor:
+        row_dict = dict(row)
+        if 'section_desc' in row_dict and row_dict['section_desc']:
+            row_dict['section_desc'] = sanitize_text(row_dict['section_desc'])
+        result.append(row_dict)
+        
     return jsonify(result)
 
-
-# This is the route to get ONE specific section by its number
-# I have also fixed the SQL query here so it works correctly.
-@app.route('/ipc/<string:section_no>', methods=['GET'])
-def get_ipc_section(section_no):
+@app.route('/api/act/<string:act_name>/<string:section_no>', methods=['GET'])
+def get_specific_section(act_name, section_no):
+    if act_name.upper() not in ALLOWED_TABLES:
+        return jsonify({'error': f'Act "{act_name}" not found'}), 404
+        
     conn = get_db_connection()
-    # The query now correctly filters for the specific section number
-    section_cursor = conn.execute('SELECT * FROM IPC WHERE section = ?', (section_no,)).fetchone()
+    query = f'SELECT * FROM {act_name.upper()} WHERE Section = ?'
+    section_cursor = conn.execute(query, (section_no,)).fetchone()
     conn.close()
     
     if section_cursor is None:
         return jsonify({'error': 'Section not found'}), 404
     else:
-        return jsonify(dict(section_cursor))
+        # Also apply the sanitizer here
+        row_dict = dict(section_cursor)
+        if 'section_desc' in row_dict and row_dict['section_desc']:
+            row_dict['section_desc'] = sanitize_text(row_dict['section_desc'])
+        return jsonify(row_dict)
 
 # --- Run the App ---
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

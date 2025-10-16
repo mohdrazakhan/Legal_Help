@@ -18,15 +18,16 @@
 
 ## 📖 Overview
 
-**Legal Help** is a comprehensive mobile and web application that provides instant access to Indian Penal Code (IPC) sections. Built with Flutter for cross-platform compatibility and powered by a Flask REST API, this app makes legal information accessible to everyone - from law students and professionals to everyday citizens seeking legal knowledge.
+**Legal Help** is a comprehensive mobile and web application that provides instant access to multiple Indian legal acts including IPC, CrPC, CPC, IEA, HMA, IDA, MVA, and NIA. Built with Flutter for cross-platform compatibility and powered by a Flask REST API with CORS support, this app makes legal information accessible to everyone - from law students and professionals to everyday citizens seeking legal knowledge.
 
 ### 🎯 Why Legal Help?
 
-- **Instant Access**: Browse all IPC sections in one place
+- **Multiple Legal Acts**: Access 8+ major Indian legal acts in one place
 - **Cross-Platform**: Works seamlessly on iOS, Android, Web, Windows, macOS, and Linux
-- **Offline-Ready**: SQLite database ensures data is always available
+- **Enhanced API**: RESTful API with text sanitization for clean, readable content
 - **User-Friendly**: Clean, intuitive interface for easy navigation
-- **Comprehensive**: Complete IPC section database with titles and descriptions
+- **Comprehensive**: Complete database with sections, titles, and descriptions
+- **Virtual Environment**: Isolated Python dependencies for easy setup
 
 ---
 
@@ -37,10 +38,13 @@
 - 📱 **Cross-Platform Mobile App** - Native performance on iOS and Android
 - 🌐 **Web Support** - Access from any modern web browser
 - 💻 **Desktop Applications** - Available for Windows, macOS, and Linux
-- 🔍 **Browse All IPC Sections** - Complete list of Indian Penal Code sections
+- � **Multiple Legal Acts** - Access IPC, CrPC, CPC, IEA, HMA, IDA, MVA, and NIA
+- �🔍 **Browse All Sections** - Complete list of sections for each legal act
 - 📄 **Detailed Section Information** - View titles and full descriptions
+- 🧹 **Text Sanitization** - Clean, formatted text without extra whitespace
 - 🚀 **Fast & Responsive** - Optimized for quick loading and smooth scrolling
 - 🎨 **Modern UI** - Clean, Material Design interface
+- 🔌 **CORS Enabled** - Ready for web-based frontend integration
 
 ### Coming Soon
 
@@ -66,7 +70,10 @@
 - **Framework**: [Flask](https://flask.palletsprojects.com) (Python)
 - **Database**: SQLite 3
 - **API**: RESTful architecture
-- **CORS**: Enabled for cross-origin requests
+- **CORS**: Flask-CORS for cross-origin requests
+- **Text Processing**: Regex-based text sanitization
+- **Virtual Environment**: venv for dependency isolation
+- **Supported Acts**: IPC, CrPC, CPC, IEA, HMA, IDA, MVA, NIA
 
 ### Development Tools
 - **Version Control**: Git
@@ -102,17 +109,22 @@ cd Legal_Help_Project
 # Navigate to backend directory
 cd backend
 
+# Create and activate virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate  # On macOS/Linux
+# OR
+venv\Scripts\activate  # On Windows
+
 # Install Python dependencies
 pip install flask flask-cors
-
-# Verify database exists
-python check_db.py
 
 # Start the Flask server
 python app.py
 ```
 
 The API server will start at `http://localhost:5000`
+
+**Note**: The database (`IndiaLaw.db`) is already included in the backend directory.
 
 #### 3️⃣ Frontend Setup
 
@@ -133,14 +145,16 @@ Update the API URL in `legal_help_app/lib/main.dart` based on your platform:
 
 ```dart
 // For iOS Simulator or Web
-const url = 'http://localhost:5000/ipc/all';
+const url = 'http://localhost:5000/api/act/IPC';
 
 // For Android Emulator
-const url = 'http://10.0.2.2:5000/ipc/all';
+const url = 'http://10.0.2.2:5000/api/act/IPC';
 
 // For Physical Devices (replace with your computer's IP)
-const url = 'http://YOUR_IP_ADDRESS:5000/ipc/all';
+const url = 'http://YOUR_IP_ADDRESS:5000/api/act/IPC';
 ```
+
+**Available Acts**: IPC, CRPC, CPC, IEA, HMA, IDA, MVA, NIA
 
 #### 5️⃣ Run the Application
 
@@ -167,14 +181,22 @@ flutter devices
 
 ### Base URL
 ```
-http://localhost:5000
+http://localhost:5000/api
 ```
 
 ### Endpoints
 
-#### Get All IPC Sections
+#### Get All Sections from a Legal Act
 ```http
-GET /ipc/all
+GET /api/act/<act_name>
+```
+
+**Parameters:**
+- `act_name` (string) - The legal act name (IPC, CRPC, CPC, IEA, HMA, IDA, MVA, NIA)
+
+**Example Request:**
+```
+GET /api/act/IPC
 ```
 
 **Response:**
@@ -189,13 +211,19 @@ GET /ipc/all
 ]
 ```
 
-#### Get Specific IPC Section
+#### Get Specific Section from a Legal Act
 ```http
-GET /ipc/<section_no>
+GET /api/act/<act_name>/<section_no>
 ```
 
 **Parameters:**
-- `section_no` (string) - The IPC section number (e.g., "302", "420")
+- `act_name` (string) - The legal act name (IPC, CRPC, CPC, IEA, HMA, IDA, MVA, NIA)
+- `section_no` (string) - The section number (e.g., "302", "420")
+
+**Example Request:**
+```
+GET /api/act/IPC/302
+```
 
 **Response:**
 ```json
@@ -206,15 +234,37 @@ GET /ipc/<section_no>
 }
 ```
 
-**Error Response (404):**
+**Error Response (404 - Act not found):**
+```json
+{
+  "error": "Act \"INVALID\" not found"
+}
+```
+
+**Error Response (404 - Section not found):**
 ```json
 {
   "error": "Section not found"
 }
 ```
 
-### Rate Limiting
-Currently no rate limiting is implemented. This will be added in future versions.
+### Supported Legal Acts
+
+| Code | Full Name |
+|------|-----------|
+| IPC | Indian Penal Code |
+| CRPC | Code of Criminal Procedure |
+| CPC | Code of Civil Procedure |
+| IEA | Indian Evidence Act |
+| HMA | Hindu Marriage Act |
+| IDA | Indian Divorce Act |
+| MVA | Motor Vehicles Act |
+| NIA | Negotiable Instruments Act |
+
+### Features
+- **CORS Enabled**: Cross-origin requests supported
+- **Text Sanitization**: Automatic removal of extra whitespace and formatting cleanup
+- **Case Insensitive**: Act names are case-insensitive (ipc, IPC, Ipc all work)
 
 ---
 
@@ -223,12 +273,11 @@ Currently no rate limiting is implemented. This will be added in future versions
 ```
 Legal_Help_Project/
 ├── 📄 README.md                 # Project documentation
-├── 🐍 backend/                  # Flask backend
-│   ├── app.py                  # Main Flask application
-│   ├── check_db.py             # Database verification script
-│   ├── indialaw.db             # SQLite database
+├── � LICENSE                   # MIT License
+├── �🐍 backend/                  # Flask backend
+│   ├── app.py                  # Main Flask application with CORS
+│   ├── IndiaLaw.db             # SQLite database (8+ legal acts)
 │   └── instance/               # Instance-specific files
-│       └── indialaw.db
 ├── 📱 legal_help_app/           # Flutter application
 │   ├── pubspec.yaml            # Flutter dependencies
 │   ├── lib/
@@ -239,6 +288,7 @@ Legal_Help_Project/
 │   ├── windows/                # Windows-specific files
 │   ├── macos/                  # macOS-specific files
 │   └── linux/                  # Linux-specific files
+├── 🔧 venv/                     # Python virtual environment
 └── 🧪 test/                     # Test files
     └── widget_test.dart
 ```
@@ -297,16 +347,17 @@ Edit `backend/app.py` to modify:
 
 **Issue: Cannot connect to backend**
 ```bash
-# Solution: Check if backend is running
+# Solution: Activate virtual environment and start server
 cd backend
+source venv/bin/activate  # macOS/Linux
 python app.py
 ```
 
 **Issue: Database not found**
 ```bash
-# Solution: Verify database location
+# Solution: Verify database location (should be IndiaLaw.db in backend/)
 cd backend
-python check_db.py
+ls -la IndiaLaw.db
 ```
 
 **Issue: Flutter dependencies not resolving**
@@ -319,7 +370,14 @@ flutter pub get
 **Issue: Android emulator can't reach localhost**
 ```dart
 // Solution: Use 10.0.2.2 instead of localhost
-const url = 'http://10.0.2.2:5000/ipc/all';
+const url = 'http://10.0.2.2:5000/api/act/IPC';
+```
+
+**Issue: Module not found (Python)**
+```bash
+# Solution: Ensure virtual environment is activated
+source venv/bin/activate
+pip install flask flask-cors
 ```
 
 ---
@@ -351,6 +409,10 @@ Contributions are what make the open-source community such an amazing place to l
 - [x] Basic IPC section listing
 - [x] Individual section details API
 - [x] Cross-platform Flutter app
+- [x] Multiple legal acts support (8+ acts)
+- [x] CORS enabled API
+- [x] Text sanitization
+- [x] Virtual environment setup
 - [ ] Search functionality
 - [ ] Bookmark feature
 - [ ] Dark mode
